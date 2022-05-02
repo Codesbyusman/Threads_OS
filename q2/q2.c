@@ -4,9 +4,12 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <wait.h>
+#include <fcntl.h>
+#include <string.h>
 
 // threadc functions
 void *multiplyP1(void *);
+void *addWithbasis(void *);
 
 // the constants that will make matrices
 #define weightMR 3
@@ -18,8 +21,8 @@ void *multiplyP1(void *);
 // defining the matrices that wil be used in the process ---- memory allocation
 double weightMatrix[weightMR][weightMC] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // the min size
 double featureMatrix[weightMC][featureMC] = {1, 1, 1, 1};                       // multipliction is when when column of first row of second are same
-double mullResult[weightMR][featureMC];                                         // the resultant will be this
-double basisMatrix[weightMR][featureMC];                                        // bsis must be of that size for the addition
+double mullResult[weightMR][featureMC] = {};                                    // the resultant will be this
+double basisMatrix[weightMR][featureMC] = {1, 1, 1};                            // bsis must be of that size for the addition
 double resultantMatrix[weightMR][featureMC];                                    // addition resultant
 double sigmoidMatrix[weightMR][featureMC];                                      // the sigmoid applieds
 
@@ -80,7 +83,7 @@ int main()
         for (int i = 0; i < weightMR; i++)
         {
             j = 0;
-            
+
             pthread_create(&threadIds[i], NULL, multiplyP1, (void *)&i); // passing the row as the argument for which thread will do multiplication
             pthread_join(threadIds[i], (void *)&returnedFromthread);     // waiting for the thread and storing the multiplied result by thread in the resiltant matrix
 
@@ -91,17 +94,18 @@ int main()
                 (double *)returnedFromthread++;
                 j++;
             }
-
-            
         }
 
-        // for(int i =0 ; i<3 ;i++)
-        // {
-        //     printf("\n%f\n", mullResult[i][0]);
-        // }
+        // writing this matix output on pipe and will read from that
+        char Result[500];
+        char convert[5];
+
+
+        // till now the multiplication has been done going for the next step
     }
     else
     {
+
         // parent
         wait(NULL); // waiting for the first p1
 
@@ -111,6 +115,17 @@ int main()
         if (prcssId2 == 0)
         {
             // child 2
+            // this is p2 will do multithreding here also
+            // such that threds equal to number of rows of basis
+            // for holding threads ids
+            pthread_t threadIds[weightMR];
+
+            // creating the threads
+            for (int i = 0; i < weightMR; i++)
+            {
+                pthread_create(&threadIds[i], NULL, addWithbasis, (void *)&i); // sending row  as the perameter as to add this row
+                pthread_join(threadIds[i], NULL);
+            }
         }
 
         // wait till the p2 finishes
@@ -147,4 +162,25 @@ void *multiplyP1(void *args)
     }
 
     return (void *)result; // returing the obtained row
+}
+
+// the addition of resultant from p1 with the basis
+void *addWithbasis(void *args)
+{
+
+    // decoding the row number to multiply
+    int *row = (int *)args;
+
+    // lokking for the columns in the particular row
+    double *result = malloc((1 * featureMC) * sizeof(double));
+
+    for (int i = 0; i < featureMC; i++)
+    {
+
+        result[i] = mullResult[*row][i] + basisMatrix[*row][i];
+
+        // printf("\n%f : %f\n", mullResult[*row][i], basisMatrix[*row][i]);
+    }
+
+    return NULL;
 }
