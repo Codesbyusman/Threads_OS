@@ -78,6 +78,8 @@ int main()
     pthread_join(id3, &sale);
 
     printf(" \n\t\t    :::::: Sum - Sale + Tax is : %.2f :::::: \n", *(double *)tax + *(double *)total - *(double *)sale);
+     printf(" \n\t\t\t    :::::: Total  : %.2f :::::: \n",*(double *)tax + *(double *)total - *(double *)sale);
+
     printf("\n\t -------------------------------------------------------------------- \n");
     printf("\t -------------------------------------------------------------------- \n");
     printf("\t -------------------------------------------------------------------- \n");
@@ -167,7 +169,7 @@ void *calculateTax(void *args)
     double *tax = malloc(sizeof(double));
 
     // calculating tax
-    *tax = ((*sum) / (1 + 0.8));
+    *tax = ((*sum) * 8/ (100));
     printf(" \n\n\t\t\t    :::::: Tax is : %.2f :::::: \n", *tax);
 
     // returning the tax to main
