@@ -6,10 +6,12 @@
 #include <wait.h>
 #include <fcntl.h>
 #include <string.h>
+#include <math.h>
 
-// threadc functions
+// threads functions
 void *multiplyP1(void *);
 void *addWithbasis(void *);
+void *applySigmoid(void *);
 
 // the constants that will make matrices
 #define weightMR 3
@@ -19,12 +21,12 @@ void *addWithbasis(void *);
 // all other constants can be derived from the all above
 
 // defining the matrices that wil be used in the process ---- memory allocation
-double weightMatrix[weightMR][weightMC] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // the min size
-double featureMatrix[weightMC][featureMC] = {1, 1, 1, 1};                       // multipliction is when when column of first row of second are same
-double mullResult[weightMR][featureMC] = {};                                    // the resultant will be this
-double basisMatrix[weightMR][featureMC] = {1, 1, 1};                            // bsis must be of that size for the addition
-double resultantMatrix[weightMR][featureMC];                                    // addition resultant
-double sigmoidMatrix[weightMR][featureMC];                                      // the sigmoid applieds
+double weightMatrix[weightMR][weightMC] = {0.2, -0.5, 0.1, 2.0, 1.5, 1.3, 2.1, 0.0, 0, 0.25, 0.2, -0.3}; // the min size
+double featureMatrix[weightMC][featureMC] = {56, 231, 24, 2};                                            // multipliction is when when column of first row of second are same
+double mullResult[weightMR][featureMC] = {};                                                             // the resultant will be this
+double basisMatrix[weightMR][featureMC] = {1.1, 3.2, -1.2};                                              // bsis must be of that size for the addition
+double resultantMatrix[weightMR][featureMC];                                                             // addition resultant
+double sigmoidMatrix[weightMR][featureMC];                                                               // the sigmoid applieds
 
 // for printing the matrices
 void printMatrix(double array[][featureMC])
@@ -125,40 +127,46 @@ void printWeightMatrix(double array[][weightMC])
 int main()
 {
 
+    // threads output
     double *returnedFromthread;
 
+    // each time for the change
     srand(time(NULL));
 
     // --------------------------------------------------------------------------------
     // ---------------------------- Random Initalization ------------------------------
     // --------------------------------------------------------------------------------
 
-    // // random initalization of required matrices
-    // for (int i = 0; i < weightMR; i++)
-    // {
-    //     for (int j = 0; j < weightMC; j++)
-    //     {
-    //         weightMatrix[i][j] = rand() % 673 - 200.56;
-    //     }
-    // }
+    // random initalization of required matrices
+    for (int i = 0; i < weightMR; i++)
+    {
+        for (int j = 0; j < weightMC; j++)
+        {
+            weightMatrix[i][j] = rand() % 100 - 40.56;
+        }
+    }
 
-    // // initalizing the feature matrix
-    // for (int i = 0; i < weightMC; i++)
-    // {
-    //     for (int j = 0; j < featureMC; j++)
-    //     {
-    //         featureMatrix[i][j] = rand() % 300 - 150.33;
-    //     }
-    // }
+    // initalizing the feature matrix
+    for (int i = 0; i < weightMC; i++)
+    {
+        for (int j = 0; j < featureMC; j++)
+        {
+            featureMatrix[i][j] = rand() % 80 - 30.33;
+        }
+    }
 
     // initalizing the basis matrix
-    // for (int i = 0; i < weightMR; i++)
-    // {
-    //     for (int j = 0; j < featureMC; j++)
-    //     {
-    //         basisMatrix[i][j] = rand() % 300 - 150.33;
-    //     }
-    // }
+    for (int i = 0; i < weightMR; i++)
+    {
+        for (int j = 0; j < featureMC; j++)
+        {
+            basisMatrix[i][j] = rand() % 50 - 10.9;
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // ------------------------------------- Pipes ---------------------------------------------
+    // -----------------------------------------------------------------------------------------
 
     //   writing the result to the pipe --- mul results
     int fdMulresult[2];
@@ -168,6 +176,26 @@ int main()
     int fdAddresult[2];
     pipe(fdAddresult);
 
+    // parent getting result of sigmoid
+    int fdSigmoid[2];
+    pipe(fdSigmoid);
+
+    // ---------------------------------------------------------------------------------------------
+    // ---------------------------------- Matrices Printing -----------------------------------------
+    // ----------------------------------------------------------------------------------------------
+
+    printf("\n :::: Weight Matrix :::: \n");
+    printWeightMatrix(weightMatrix);
+
+    printf("\n :::: Feature Matrix :::: \n");
+    printMatrix(featureMatrix);
+
+    printf("\n :::: Biases Matrix :::: \n");
+    printMatrix(basisMatrix);
+
+    // --------------------------------------------------------------------------------------------------
+    // -------------------------------- Making Childs ----------------------------------------------------
+
     // the id's off functions
     pid_t prcssId1, prcssId2, prcssId3;
 
@@ -176,7 +204,7 @@ int main()
 
     if (prcssId1 == 0)
     {
-         printf("\n child 1 \n");
+        printf("\n\t\t  ::::::::: Child Process 1 :::::::::\n");
 
         // child
         // will do now multi threading --- such that
@@ -203,13 +231,14 @@ int main()
         }
 
         // writing this matix output on pipe and will read from that
-        char result[500] = " ";
-        char convert[10];
+        char result[100] = " ";
+        char convert[10] = " ";
 
         for (int i = 0; i < weightMR; i++)
         {
             for (int j = 0; j < featureMC; j++)
             {
+                convert[0] = convert[1] = convert[2] = convert[3] = convert[4] = convert[5] = convert[6] = convert[7] = convert[8] = convert[9] = ' ';
                 sprintf(convert, "%.2f", mullResult[i][j]); // converting to string so to concatenate
                 strcat(result, convert);                    // concatenating
                 strcat(result, ":");                        // cancatinating the : with result
@@ -221,6 +250,9 @@ int main()
         write(fdMulresult[1], result, sizeof(result));
 
         // till now the multiplication has been done going for the next step
+        printf("\n :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n");
+        printf("\n :::::: Weight Matrix * Feature Matrix  :::::: \n");
+        printMatrix(mullResult);
     }
     else
     {
@@ -228,18 +260,17 @@ int main()
         // parent
         wait(NULL); // waiting for the first p1
 
-         printf("\n parrent \n");
-
         // will read mul result -- will close writing of that pipe here
         close(fdMulresult[1]);
 
         // the result containint
-        char resultMull[500];
-        read(fdMulresult[0], resultMull, sizeof(resultMull));
+        char result[100];
+        read(fdMulresult[0], result, sizeof(result));
 
-        char *pipeRead = strtok(resultMull, ":");
+        char *pipeRead = strtok(result, ":");
 
         // assigong the first extracted
+
         double resultD = strtod(pipeRead, NULL);
         mullResult[0][0] = resultD;
 
@@ -267,7 +298,8 @@ int main()
         if (prcssId2 == 0)
         {
 
-            printf("\n child 2 \n");
+            printf("\n\t\t  ::::::::: Child Process 2 :::::::::\n");
+
             // child 2
             // this is p2 will do multithreding here also
             // such that threds equal to number of rows of basis
@@ -295,45 +327,152 @@ int main()
             }
 
             // writing this matix output on pipe and will read from that
-            char resultAdd[500];
-            char convertAdd[10];
+            char resultAdd[100] = " ";
+            char convertAdd[10] = " ";
 
             for (int i = 0; i < weightMR; i++)
             {
                 for (int j = 0; j < featureMC; j++)
                 {
                     sprintf(convertAdd, "%.2f", resultantMatrix[i][j]); // converting to string so to concatenate
-                    strcat(resultAdd, convertAdd);                    // concatenating
-                    strcat(resultAdd, ":");                        // cancatinating the : with result
+                    strcat(resultAdd, convertAdd);                      // concatenating
+                    strcat(resultAdd, ":");                             // cancatinating the : with result
                 }
             }
-
-            printf("\n%s\n ",resultAdd);
 
             // closing reading end here
             close(fdAddresult[0]);
             write(fdAddresult[1], resultAdd, sizeof(resultAdd));
 
+            // till now the multiplication has been done going for the next step
+            printf("\n :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n");
 
+            printf("\n :::::: Result 1 + Baises Matrix  :::::: \n");
             printMatrix(resultantMatrix);
         }
 
         // wait till the p2 finishes
         wait(NULL);
 
-         printf("\n parent \n");
+        // will read mul result -- will close writing of that pipe here
+        close(fdAddresult[1]);
+
+        // the result containint
+        read(fdAddresult[0], result, sizeof(result));
+
+        pipeRead = strtok(result, ":");
+
+        // assigong the first extracted
+
+        resultD = strtod(pipeRead, NULL);
+        resultantMatrix[0][0] = resultD;
+
+        // adding the result to the resultant matrix that was produced by the child 1
+        for (int i = 0; i < weightMR && pipeRead != NULL; i++)
+        {
+
+            for (int j = 0; j < featureMC && pipeRead != NULL; j++)
+            {
+                if (!(i == 0 && j == 0))
+                {
+                    // breaking to the pices and writing to the desired array
+                    pipeRead = strtok(NULL, ":");
+                    // assigong the extracted
+                    resultD = strtod(pipeRead, NULL);
+
+                    resultantMatrix[i][j] = resultD;
+                }
+            }
+        }
 
         // making the other process
         prcssId3 = fork();
 
         if (prcssId3 == 0)
         {
-             printf("\n child 3 \n");
+            printf("\n\t\t  ::::::::: Child Process 3 :::::::::\n");
 
-            // child
+            // doing here the multi threading again
+            // threads equal to the number of rows
+            pthread_t threadIds[weightMR];
+
+            int j = 0;
+
+            // creating the threads
+            for (int i = 0; i < weightMR; i++)
+            {
+                j = 0;
+
+                // creating threads
+                pthread_create(&threadIds[i], NULL, applySigmoid, (void *)&i); // sending row  as the perameter as to add this row
+                pthread_join(threadIds[i], (void *)&returnedFromthread);       // waiting for the thread and storing the multiplied result by thread in the resiltant matrix
+
+                // if multiple column output of multiplication
+                while (j < featureMC)
+                {
+
+                    sigmoidMatrix[i][j] = *(double *)returnedFromthread;
+                    (double *)returnedFromthread++;
+                    j++;
+                }
+            }
+
+            printf("\n :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n");
+
+            printf("\n :::::: Sigmoid on Result 2 ::::::\n");
+            printMatrix(sigmoidMatrix);
+
+            // writing this matix output on pipe and will read from that
+            char resultSigmoid[100] = " ";
+            char convertSigmoid[10] = " ";
+
+            for (int i = 0; i < weightMR; i++)
+            {
+                for (int j = 0; j < featureMC; j++)
+                {
+                    sprintf(convertSigmoid, "%.2f", sigmoidMatrix[i][j]); // converting to string so to concatenate
+                    strcat(resultSigmoid, convertSigmoid);                // concatenating
+                    strcat(resultSigmoid, ":");                           // cancatinating the : with result
+                }
+            }
+
+            // closing reading end here
+            close(fdSigmoid[0]);
+            write(fdSigmoid[1], resultSigmoid, sizeof(resultSigmoid));
         }
 
         wait(NULL);
+
+        // will read mul result -- will close writing of that pipe here
+        close(fdSigmoid[1]);
+
+        // the result containint
+        read(fdSigmoid[0], result, sizeof(result));
+
+        pipeRead = strtok(result, ":");
+
+        // assigong the first extracted
+
+        resultD = strtod(pipeRead, NULL);
+        sigmoidMatrix[0][0] = resultD;
+
+        // adding the result to the resultant matrix that was produced by the child 1
+        for (int i = 0; i < weightMR && pipeRead != NULL; i++)
+        {
+
+            for (int j = 0; j < featureMC && pipeRead != NULL; j++)
+            {
+                if (!(i == 0 && j == 0))
+                {
+                    // breaking to the pices and writing to the desired array
+                    pipeRead = strtok(NULL, ":");
+                    // assigong the extracted
+                    resultD = strtod(pipeRead, NULL);
+
+                    sigmoidMatrix[i][j] = resultD;
+                }
+            }
+        }
     }
 
     return 0;
@@ -352,8 +491,7 @@ void *multiplyP1(void *args)
     {
         for (int j = 0; j < weightMC; j++)
         {
-            result[i] = result[i] + (*weightMatrix[*row] * featureMatrix[i][j]);
-            *row++;
+            result[i] = result[i] + (weightMatrix[*row][j] * featureMatrix[j][i]);
         }
     }
 
@@ -377,4 +515,33 @@ void *addWithbasis(void *args)
     }
 
     return (void *)result; // returing the result from thread
+}
+
+// applying the sigmoid function
+void *applySigmoid(void *args)
+{
+    // since the matrices to multiply we have
+    // decoding the row number to multiply
+    int *row = (int *)args;
+
+    double *result = malloc((1 * featureMC) * sizeof(double));
+    double z = 0.0;
+    double e = 2.718281828459045;
+    double A = 0; // the final answer
+
+    for (int i = 0; i < featureMC; i++)
+    {
+
+        z = resultantMatrix[*row][i]; // the z answer
+        z *= -1;                      // taking negative
+        e = pow(e, z);                // taking e^-z
+        A = 1 / (1 + e);              // the final
+
+        // storing the result
+        result[i] = A;
+
+        // will loop if multiple columns
+    }
+
+    return (void *)result; // returing the obtained row
 }
