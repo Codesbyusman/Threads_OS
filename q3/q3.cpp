@@ -1,3 +1,9 @@
+/* 
+        Muhammad Usman Shahid
+                20i-1797
+                    T
+*/
+
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -286,15 +292,18 @@ void *print(void *args)
 
     CompletedTask done;
     double completionTime;
+    string mixResult;
 
+    cout << endl;
     cout << setw(20) << "  Task ID  |"
          << setw(25) << "  Completion Time (ms)  |"
          << setw(15) << "  Unit Id's  |"
          << setw(18) << " Task Value 1  |"
-         << setw(18) << " Task Value 2  |"
-         << setw(18) << " Task Value 3  |"
-         << setw(18) << " Task Value 4  |"
-         << setw(14) << " Task Value 5" << endl;
+         << setw(19) << " Task Value 2  |"
+         << setw(19) << " Task Value 3  |"
+         << setw(19) << " Task Value 4  |"
+         << setw(15) << "   Task Value 5 " << endl
+         << endl;
     // the infinite loop will break when finished and all queues are empty and file is read
     while (1)
     {
@@ -306,9 +315,10 @@ void *print(void *args)
             finishedWaiting.pop();          // removing
 
             completionTime = (done.completion_time.tv_sec - done.arrival_time.tv_sec) + (double)(done.completion_time.tv_nsec - done.arrival_time.tv_nsec) / (double)BILLION;
+            completionTime *= 1000; // in milii second
 
             // displaying the data
-            cout << setw(15) << done.id << "    |   " << setw(15) << completionTime << "      | " << setw(3);
+            cout << setw(15) << done.id << "    |   " << setw(13) << completionTime << "        | " << setw(3);
 
             // the unit ids
             for (int i = 0; i < done.unit_count; i++)
@@ -316,19 +326,31 @@ void *print(void *args)
                 cout << done.unitIdList[i] << ",";
             }
 
-            if(done.unit_count == 1)
-            cout << "\b " << setw(7) << "         | " ;
-            if(done.unit_count == 2)
-            cout << "\b " << setw(6) << "       | " ;
-            if(done.unit_count == 3)
-            cout << "\b " << setw(5) << "     | " ;
-            if(done.unit_count == 4)
-            cout << "\b " << setw(4) << "   | " ;
-            if(done.unit_count == 5)
-            cout << "\b " << setw(3) << "| " ;
+            if (done.unit_count == 1)
+                cout << "\b " << setw(7) << "         | ";
+            if (done.unit_count == 2)
+                cout << "\b " << setw(6) << "       | ";
+            if (done.unit_count == 3)
+                cout << "\b " << setw(5) << "     | ";
+            if (done.unit_count == 4)
+                cout << "\b " << setw(4) << "   | ";
+            if (done.unit_count == 5)
+                cout << "\b " << setw(3) << "| ";
 
-            cout<<done.unitIdList[0]<<"-"<<done.results[0]<<endl;
+            for (int i = 0; i < done.unit_count; i++)
+            {
+                mixResult = to_string(done.unitIdList[i]) + "-" + to_string(done.results[i]); // the concatenated result
 
+                cout << setw(12) << mixResult;
+                if (i != done.unit_count - 1)
+                    cout << setw(5) << "    |  ";
+            }
+            cout << endl
+                 << endl;
+
+            // deleting the dynamic memories
+            delete[] done.unitIdList;
+            delete[] done.results;
         }
 
         // break as dispatcher work is completed
